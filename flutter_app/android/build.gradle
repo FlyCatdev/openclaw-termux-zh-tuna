@@ -1,5 +1,8 @@
 allprojects {
     repositories {
+        maven { url "https://maven.aliyun.com/repository/google" }
+        maven { url "https://maven.aliyun.com/repository/central" }
+        maven { url "https://maven.aliyun.com/repository/public" }
         google()
         mavenCentral()
     }
@@ -13,7 +16,7 @@ subprojects {
     // references flutter.compileSdkVersion before the Flutter tooling injects it.
     if (project.name != "app") {
         project.ext.set("flutter", [
-            compileSdkVersion: 35,
+            compileSdkVersion: 36,
             minSdkVersion: 29,
             targetSdkVersion: 36
         ])

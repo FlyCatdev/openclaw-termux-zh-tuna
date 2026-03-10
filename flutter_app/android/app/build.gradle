@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
@@ -35,7 +35,7 @@ def hasKeystore = keystoreProperties.containsKey('storeFile') &&
 
 android {
     namespace = "com.junwan666.openclawzh"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
