@@ -150,14 +150,12 @@ class BootstrapService {
         'echo permissions_fixed',
       );
 
-      await NativeBridge.runInProot('''
-cat > /etc/apt/sources.list <<EOF
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse
-deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse
-EOF
-''');
+await NativeBridge.runInProot(
+  'echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu noble main restricted universe multiverse" > /etc/apt/sources.list && '
+  'echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu noble-security main restricted universe multiverse" >> /etc/apt/sources.list && '
+  'echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu noble-updates main restricted universe multiverse" >> /etc/apt/sources.list && '
+  'echo "deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu noble-backports main restricted universe multiverse" >> /etc/apt/sources.list'
+);
 
       // --- Install base packages via apt-get (like Termux proot-distro) ---
       // Now that our proot matches Termux exactly (env -i, clean host env,
