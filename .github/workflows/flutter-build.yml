@@ -21,6 +21,10 @@ permissions:
   contents: write
   pull-requests: write
 
+# 强制 GitHub Actions 使用 Node.js 24（解决 Node 20 弃用警告）
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   build:
     name: Build APK & AAB
@@ -34,13 +38,13 @@ jobs:
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: 3.24.0
           channel: stable
           cache: true
 
@@ -130,11 +134,9 @@ jobs:
 
           mkdir -p artifacts
 
-          # Fat APK
           cp flutter_app/build/app/outputs/flutter-apk/app-release.apk \
              "artifacts/OpenClaw-v${VERSION}-universal.apk"
 
-          # Per-ABI APKs
           for abi in arm64-v8a armeabi-v7a x86_64; do
             SRC="flutter_app/build/app/outputs/flutter-apk/app-${abi}-release.apk"
             if [ -f "$SRC" ]; then
@@ -142,13 +144,11 @@ jobs:
             fi
           done
 
-          # AAB
           AAB="flutter_app/build/app/outputs/bundle/release/app-release.aab"
           if [ -f "$AAB" ]; then
             cp "$AAB" "artifacts/OpenClaw-v${VERSION}.aab"
           fi
 
-          # Summary
           echo "### Build Artifacts" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
@@ -174,81 +174,6 @@ jobs:
           name: openclaw-aab
           path: artifacts/*.aab
           retention-days: 30
-
-      - name: Comment on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = '${{ steps.apks.outputs.version }}';
-            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-
-            const body = [
-              `## Build Successful`,
-              ``,
-              `**Version:** \`v${version}\``,
-              ``,
-              `### Download APKs`,
-              ``,
-              `| Architecture | Download |`,
-              `|---|---|`,
-              `| arm64-v8a (recommended) | [OpenClaw-v${version}-arm64-v8a.apk](${runUrl}#artifacts) |`,
-              `| armeabi-v7a (32-bit) | [OpenClaw-v${version}-armeabi-v7a.apk](${runUrl}#artifacts) |`,
-              `| x86_64 (emulator) | [OpenClaw-v${version}-x86_64.apk](${runUrl}#artifacts) |`,
-              `| Universal (all ABIs) | [OpenClaw-v${version}-universal.apk](${runUrl}#artifacts) |`,
-              `| App Bundle (Play Store) | [OpenClaw-v${version}.aab](${runUrl}#artifacts) |`,
-              ``,
-              `> Download from [**Actions Artifacts**](${runUrl}#artifacts)`,
-              ``,
-              `---`,
-              `*Built from ${process.env.GITHUB_SHA.substring(0, 7)} by [GitHub Actions](${runUrl})*`,
-            ].join('\n');
-
-            // Find existing bot comment to update instead of spamming
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const botComment = comments.find(c =>
-              c.user.type === 'Bot' && c.body.includes('## Build Successful')
-            );
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
-
-      - name: Comment build failure on PR
-        if: github.event_name == 'pull_request' && failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                `## Build Failed`,
-                ``,
-                `The build failed for commit ${process.env.GITHUB_SHA.substring(0, 7)}.`,
-                ``,
-                `[View build logs](${runUrl})`,
-              ].join('\n'),
-            });
 
   release:
     name: Create GitHub Release
@@ -281,7 +206,6 @@ jobs:
           VERSION=$(grep '^version:' flutter_app/pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-          # Check if this tag already exists
           if git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q .; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
@@ -294,30 +218,6 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: OpenClaw v${{ steps.version.outputs.version }}
-          body: |
-            ## OpenClaw Android v${{ steps.version.outputs.version }}
-
-            Standalone Android app — no Termux required.
-
-            ### Downloads
-            | File | Description |
-            |------|-------------|
-            | `OpenClaw-v${{ steps.version.outputs.version }}-arm64-v8a.apk` | Most modern Android phones (recommended) |
-            | `OpenClaw-v${{ steps.version.outputs.version }}-armeabi-v7a.apk` | Older 32-bit ARM devices |
-            | `OpenClaw-v${{ steps.version.outputs.version }}-x86_64.apk` | Emulators / x86 devices |
-            | `OpenClaw-v${{ steps.version.outputs.version }}-universal.apk` | All architectures (larger) |
-            | `OpenClaw-v${{ steps.version.outputs.version }}.aab` | Android App Bundle (Play Store) |
-
-            ### First Run
-            1. Install the APK
-            2. Follow the setup wizard (downloads ~500MB Ubuntu rootfs)
-            3. Start the gateway from the dashboard
-            4. Access the web dashboard at `http://127.0.0.1:18789`
-
-            ### Requirements
-            - Android 10+ (API 29)
-            - ~500MB free storage for initial setup
-            - Internet connection for first-time setup
           files: artifacts/*
           draft: false
           prerelease: false
