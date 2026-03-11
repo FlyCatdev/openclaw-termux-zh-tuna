@@ -150,6 +150,15 @@ class BootstrapService {
         'echo permissions_fixed',
       );
 
+      await NativeBridge.runInProot('''
+cat > /etc/apt/sources.list <<EOF
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-security main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ noble-backports main restricted universe multiverse
+EOF
+''');
+
       // --- Install base packages via apt-get (like Termux proot-distro) ---
       // Now that our proot matches Termux exactly (env -i, clean host env,
       // proper flags), dpkg works normally. No need for Java-side deb
@@ -251,6 +260,8 @@ class BootstrapService {
         progress: 1.0,
         message: 'Node.js installed',
       ));
+
+      await NativeBridge.runInProot('npm config set registry https://registry.npmmirror.com');
 
       // Step 4: Install OpenClaw (80-98%)
       _updateSetupNotification('Installing OpenClaw...', progress: 82);
