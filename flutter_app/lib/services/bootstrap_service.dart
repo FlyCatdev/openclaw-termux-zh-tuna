@@ -152,10 +152,10 @@ class BootstrapService {
 
 await NativeBridge.runInProot('''
 cat > /etc/apt/sources.list <<EOF
-deb http://mirrors.aliyun.com/ubuntu/ noble main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ noble-security main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ noble-updates main restricted universe multiverse
-deb http://mirrors.aliyun.com/ubuntu/ noble-backports main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports noble main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports noble-security main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports noble-updates main restricted universe multiverse
+deb http://mirrors.aliyun.com/ubuntu-ports noble-backports main restricted universe multiverse
 EOF
 ''');
 
